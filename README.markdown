@@ -1,3 +1,5 @@
+*WARNING* this is unreleased code and is only on Github for sharing with colleagues. An actual release will follow.
+
 # Custom Admin Extension
 
 * Version: 0.01
