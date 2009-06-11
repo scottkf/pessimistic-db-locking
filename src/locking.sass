@@ -1,0 +1,100 @@
+#locking-overlay
+	position: absolute
+	top: 0
+	right: 0
+	bottom: 0
+	left: 0
+	background: #000
+	color: #FFF
+	z-index: 10
+
+#locking-overlay[id], #locking-wrapper[id] 
+	position: fixed
+
+#locking-wrapper 
+	z-index: 12
+	position: absolute
+	top: 50%
+	left: 50%
+	width: 350px
+	margin: 0 0 0 -175px
+	h1
+		background: transparent
+		color: #FFF
+		margin: 0
+		padding: 0
+		font-size: 28px
+		font-weight: normal
+		font-family: Helvetica, Arial, Sans-serif
+
+#locking 
+	background: #FFF
+	color: #555
+	padding: 16px
+	-moz-border-radius: 10px
+	-webkit-border-radius: 10px
+	p
+		margin: 0
+		padding: 0
+		font-size: 12px
+		line-height: 1.4
+		&.call-to-action
+			a
+				background: inherit
+				color: #06C
+				text-decoration: none
+				margin-top: 16px
+				padding: 7px 35px 7px 7px
+				font-size: 18px
+				font-weight: bold
+				line-height: 1
+				letter-spacing: -1px
+				text-decoration: none
+				display: block
+				&:hover, &:hover span
+					background: #06C
+					color: #FFF
+				span
+					font-weight: normal
+					font-size: 14px
+					letter-spacing: 0					
+
+
+	ol
+		margin: 5px 0
+		list-style: none
+		li
+			padding-top: 5px
+			font-size: 12px
+			clear: left
+			list-style: none
+			h3 
+				margin: 0 0 0 45px
+				padding: 0
+				font-size: 14px
+				line-height: 1.2
+				background:none
+				a
+					background: inherit
+					color: #06C
+					text-decoration: none
+					&:hover
+						text-decoration: underline
+	p
+		&.votes
+			background: inherit
+			color: #888
+			width: 40px
+			margin: 0
+			padding: 0
+			font-size: 10px
+			text-align: center
+			float: left
+			em
+				background: inherit
+				color: #444
+				font-size: 14px
+				font-weight: bold
+				line-height: 1
+				letter-spacing: -1px
+				display: block
