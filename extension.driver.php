@@ -10,12 +10,12 @@
 		
 		public static $params = null;
 		// in seconds, how often to renew the lock  (via an AJAX request)
-		protected $renew_lock = 10;
-		// in seconds, how long the lock remains
-		protected $expire_lock = 20;
+		protected $renew_lock = 30;
+		// in seconds, how long the lock remains if it's not renewed
+		protected $expire_lock = 40;
 		// in seconds, how long a person can hold a lease (if they hold it for this long, it's automatically dropped, 
 		//		so as to prevent people from being idle on a page)
-		protected $max_lock_hold = 20;
+		protected $max_lock_hold = 7200;
 		protected $locked = false;
 		
 		public function about() {
