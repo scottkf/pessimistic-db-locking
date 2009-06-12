@@ -120,7 +120,7 @@
 							$_REQUEST = array(); 
 							$_POST = array();
 							$page->addScriptToHead(URL . '/extensions/pessimistic_db_locking/assets/disable-form.js', '1005');
-							$this->locked = array(true, $lock[0], $lock[1]);
+							$this->locked = array(true, $lock[0], $lock[1], $lock[2]);
 						} else {
 							// add js to renew lock
 							$page->addElementToHead($this->addJStoRenewLock($entry_id, $author_id), '1005');
@@ -138,7 +138,7 @@
 			if ($this->locked[0] == true) {
 		    $authorManager = new AuthorManager($this->_Parent);
 		    $authors = $authorManager->fetchByID($this->locked[1]);
-				$time_left = (strtotime($this->locked[2]) + $this->expire_lock) - time();
+				$time_left = (strtotime($this->locked[3]) + $this->expire_lock) - time();
 				Administration::instance()->Page->pageAlert(__($authors->getFullName().' is already editing this entry! Please try again in <strong>'.$time_left.'</strong> seconds.'), Alert::ERROR);
 			}
 		}

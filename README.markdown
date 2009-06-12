@@ -2,7 +2,7 @@ This README is incomplete.
 
 # Pessimistic Database Locking
 
-* Version: 0.01
+* Version: 0.1
 * Author: Scott Tesoriere <http://github.com/scottkf/>
 * Build Date: 2009-06-12
 * Requirements: Symphony 2.0.2 (with jQuery 1.3)
@@ -35,6 +35,6 @@ This extension is based on many things, including Nick Dunn's Custom Admin exten
 
 ## Changelog
 
-### June 6th, 2009
+### June 12th, 2009
 - Added check for locks on pre entry creation 
 - Remove the lock on post entry creation)
