@@ -4,8 +4,9 @@ This README is incomplete.
 
 * Version: 0.01
 * Author: Scott Tesoriere <http://github.com/scottkf/>
-* Build Date: 2009-06-10
+* Build Date: 2009-06-12
 * Requirements: Symphony 2.0.2 (with jQuery 1.3)
+								**JAVASCRIPT JAVASCRIPT JAVASCRIPT**
 
 ## Installation
 
@@ -20,8 +21,7 @@ It works as follows:
 
 1. User edits an entry and opens the edit page
 2. User obtains a lock on the entry, the lock expires after X amount of time (configurable), and renews (via JS) after X amount of time (configurable)
-3a. After successful save, the lock is released
-3b. OR the lock will be released after X amount of time (like if you went idle on the screen), also configurable
+3. After successful save, the lock is released OR the lock will be released after X amount of time (like if you went idle on the screen), also configurable
 
 
 ## Creation
@@ -30,5 +30,11 @@ This extension is based on many things, including Nick Dunn's Custom Admin exten
 
 ## TODO
 
-- Check for locks on pre entry creation (and remove the lock on post entry creation)
+- Add an unload event to release the entry
 - Finish the frontend filter that does the same crap as the backend (figure out how to inject the JS)
+
+## Changelog
+
+### June 6th, 2009
+- Added check for locks on pre entry creation 
+- Remove the lock on post entry creation)

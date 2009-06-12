@@ -119,8 +119,8 @@ var lockingBox;
 		
 		forceRenew: function(entry_id, author_id, time) {
 			data = "entry_id="+entry_id+"&author_id="+author_id+"&force=true";
-      $('#locking-overlay, #locking-wrapper').remove();
 			$.post(this.URL.symphony_root + 'extension/pessimistic_db_locking/ajax_locking/', data, function(response) {
+	      $('#locking-overlay, #locking-wrapper').remove();
 			})			
 		}
 	

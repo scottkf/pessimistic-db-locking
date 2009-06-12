@@ -39,7 +39,7 @@
           `id` int(11) unsigned NOT NULL auto_increment,
 					`entry_id` int(11) unsigned NOT NULL,
 					`user_id` int(11) unsigned NOT NULL,
-					`time_updated` timestamp NOT NULL,
+					`time_updated` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
 					`time_opened` datetime NOT NULL,
           PRIMARY KEY (`id`),
 					KEY `entry_id` (`entry_id`),
@@ -58,11 +58,6 @@
 					'page'		=> '/backend/',
 					'delegate'	=> 'InitaliseAdminPageHead',
 					'callback'	=> 'initaliseAdminPageHead'
-				),
-				array(
-					'page'	=>'/frontend/', 
-					'delegate'	=> 'FrontendOutputPreGenerate',
-					'callback'	=> 'initialiseFrontendPageHead'
 				),
 				array(
 					'page'		=> '/backend/',
@@ -89,16 +84,11 @@
         'delegate'  => 'EventPostSaveFilter',
         'callback'  => 'eventPostSave'
       ),
-				array(
-					'page'		=> '/publish/edit/',
-					'delegate'	=> 'EntryPreEdit',
-					'callback'	=> 'entryPreSave'
-				),
-				array(
-					'page'		=> '/publish/edit/',
-					'delegate'	=> 'EntryPostEdit',
-					'callback'	=> 'entryPostSave'
-				)
+			array(
+				'page'		=> '/publish/edit/',
+				'delegate'	=> 'EntryPostEdit',
+				'callback'	=> 'entryPostSave'
+			)
 			);
 		}
 		
@@ -126,6 +116,9 @@
 						// if the author isn't the same one, let the user know
 						if ($lock[0] != $author_id) {
 							// set a page alert and fire the js
+							// just incase they tried (accidentally or maliciously) to POST without owning the lock
+							$_REQUEST = array(); 
+							$_POST = array();
 							$page->addScriptToHead(URL . '/extensions/pessimistic_db_locking/assets/disable-form.js', '1005');
 							$this->locked = array(true, $lock[0], $lock[1]);
 						} else {
@@ -137,21 +130,6 @@
 				}
 			}
 		}			
-
-		// array of page, xml, xsl
-		public function initaliseFrontendPageHead($context) {
-			$page = $context['parent']->Page;
-			$event = $context['event'];
-			
-			// only include the js if there's an event named 'lock-entry' on the page
-			//   (ignore if the section is allowed to be locked because it would be overwritten here)
-			// if there's an existing lock that isn't expired (and the user isn't the lock user)
-			//  let the user know who it's owned by, set inputs readonly (via js), and to try again later ;'(
-			// else
-			//	renew/setup a lock
-			$page->addScriptToHead(URL . '/extensions/pessimistic_db_locking/assets/locking.js', 1004);
-			
-		}
 		
 		public function appendPageAlert(&$context) {
 			$page = $context['parent']->Page;
@@ -164,6 +142,7 @@
 				Administration::instance()->Page->pageAlert(__($authors->getFullName().' is already editing this entry! Please try again in <strong>'.$time_left.'</strong> seconds.'), Alert::ERROR);
 			}
 		}
+		
 
 		public function appendEventFilter(&$context) {
       $context['options'][] = array(
@@ -173,20 +152,10 @@
 		}
 
 		// array of section, entry, fields
-		public function entryPreSave($context) {
-			$page = $context['parent']->Page;
-			$entry_id = $page->_context['entry_id'];
-			echo $entry_id." id\n";
-			// check if a lock exists AND it's owned by the same user AND it's not expired
-			//	say ok and lock sym_entries, it will be implicitly unlocked when we disconnect if something fails 
-			// if not
-			//  set $context[entry to null]
-		}
-
-		// array of section, entry, fields
 		public function entryPostSave($context) {
-			// unlock sym_entries
-			// get the entry id, user id, try to free the lock (it might already be free from the javascript)
+
+			$entry_id = $context['entry']->get('id');
+			$this->removeTheLockByEntry($entry_id);
 		}
 
 		// array of section, entry, fields
@@ -214,12 +183,6 @@
 			Class functions:
 		-------------------------------------------------------------------------*/
 		
-		public function freeTheLock($entry_id, $user_id = 1) {
-			if (($lock = $this->fetchTheLock($entry_id, $user_id)) !== FALSE) {
-				$this->removeTheLock($lock['id']);
-			}
-		}
-		
 		// this set's up/renew's the lock
 		public function renewTheLock($entry_id, $user_id = 1) {
 			// remove the old one
@@ -231,6 +194,13 @@
 			}
 		}
 
+		/* this see's if the lock exists AND see's if it's expired 
+			 		if it exists, returns an array of
+			 		the user_id who owns it
+					the time it was opened
+					the time it was last updated
+																					
+		*/
 		public function lockExists($entry_id) {
 			$this->lockTables('READ');
 			$lock = $this->_Parent->Database->fetch("
@@ -266,7 +236,7 @@
 			$this->unlockTables();			
 		}
 		
-
+		/* this just sees if the lock exists */
 		protected function fetchTheLock($entry_id, $user_id) {
 			$this->lockTables('READ');
 			$lock = $this->_Parent->Database->fetch("
