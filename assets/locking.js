@@ -59,7 +59,7 @@ var lockingBox;
 	  }
 
 		
-	},
+	};
 	
 	/* thank you nick dunn ;p */
 	Locking = {
@@ -74,15 +74,19 @@ var lockingBox;
 			author_id: null
 		},
 	
-		init: function() {
+		init: function(url) {
 			
-			var h1 = $('h1:first');
-			var root = h1.find('a').attr('href');
-      var url = window.location.href.replace(root, '').split('/');
+			if (url == null) {
+				var h1 = $('h1:first');
+				var root = h1.find('a').attr('href');
+	      var url = window.location.href.replace(root, '').split('/');
       
-      this.URL.root = root;
+	      this.URL.root = root;
+			}
+			else {
+				this.URL.root = url;
+			}
       this.URL.symphony_root = this.URL.root + 'symphony/';
-      this.URL.page = url[1];
 
 		},
 
@@ -117,6 +121,26 @@ var lockingBox;
 			}, time*1000);
 		},
 		
+		
+		setupLock: function(entry_id, author_id) {
+			var url = this.URL.symphony_root;
+			data = "entry_id="+entry_id+"&author_id="+author_id;
+      $.post(url + 'extension/pessimistic_db_locking/ajax_locking/', data, function(response){
+				if (response == '"expired"') {
+					return 'expired';
+				}
+				else if (response == '"expired-lifetime"') {
+					return 'expired-lifetime';
+				}
+				else if (response == '"true"'){
+					return true;
+				}
+				else {
+					return response;
+				}
+			})
+		},
+		
 		forceRenew: function(entry_id, author_id, time) {
 			data = "entry_id="+entry_id+"&author_id="+author_id+"&force=true";
 			$.post(this.URL.symphony_root + 'extension/pessimistic_db_locking/ajax_locking/', data, function(response) {
@@ -128,10 +152,3 @@ var lockingBox;
 	}
 	
 })(jQuery.noConflict());
-
-jQuery(document).ready(function() {
-	Locking.init();
-	
-
-		
-});

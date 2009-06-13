@@ -39,6 +39,7 @@
 			else if ($lock == 0) {
 				echo json_encode('expired');
 			}
+			// doesn't exist
 			else {
 				$this->_driver->renewTheLock($entry_id, $author_id);
 				echo json_encode('true');

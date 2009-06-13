@@ -1,6 +1,7 @@
 <?php
 
 	require_once(TOOLKIT . '/class.entrymanager.php');
+	require_once(TOOLKIT . '/class.eventmanager.php');
 	require_once(TOOLKIT . '/class.authormanager.php');
 
 	class Extension_Pessimistic_DB_Locking extends Extension {
@@ -21,7 +22,7 @@
 		public function about() {
 			return array(
 				'name'			=> 'Pessimistic Database Locking',
-				'version'		=> '0.01',
+				'version'		=> '0.2',
 				'release-date'	=> '2009-06-10',
 				'author'		=> array(
 					'name'			=> 'Scott Tesoriere',
@@ -85,6 +86,16 @@
         'callback'  => 'eventPostSave'
       ),
 			array(
+	      'page'    => '/frontend/',
+	      'delegate'  => 'FrontendProcessEvents',
+	      'callback'  => 'preInjectXML'
+	    ),
+			array(
+	      'page'    => '/frontend/',
+	      'delegate'  => 'FrontendEventPostProcess',
+	      'callback'  => 'injectXML'
+	    ),
+			array(
 				'page'		=> '/publish/edit/',
 				'delegate'	=> 'EntryPostEdit',
 				'callback'	=> 'entryPostSave'
@@ -144,13 +155,6 @@
 		}
 		
 
-		public function appendEventFilter(&$context) {
-      $context['options'][] = array(
-         'lock-entry', @in_array($id, $context['selected']),
-         General::sanitize("Lock Entry")
-       );			
-		}
-
 		// array of section, entry, fields
 		public function entryPostSave($context) {
 
@@ -158,22 +162,90 @@
 			$this->removeTheLockByEntry($entry_id);
 		}
 
-		// array of section, entry, fields
+		public function preInjectXML($context) {
+			$EventManager = new EventManager($this->_Parent);
+			// we have to load the events twice to look for a lock-entry event attached
+			if(strlen(trim($context['events'])) > 0) {
+				$events = preg_split('/,\s*/i', $context['events'], -1, PREG_SPLIT_NO_EMPTY);
+				$events = array_map('trim', $events);
+			
+				if(!is_array($events) || empty($events)) return;
+		
+				foreach($events as $handle){
+					$event = $EventManager->create($handle);
+				 	if ($event->eParamFILTERS && in_array("lock-entry", $event->eParamFILTERS)) {
+						$this->locked = true;
+						return;
+					}
+				}
+			}
+		}
+		
+		public function injectXML($context) {
+			// do this only if the lock-entry event is attached
+			if ($this->locked == true) {
+				$lock_event = new XMLElement('lock-entry');
+		
+				$fields = array(
+					'renew' => new XMLElement('renew_every', $this->renew_lock),
+					'expires' => new XMLElement('expires_at', $this->expire_lock),
+					'expires-lifetime' => new XMLElement('expires_lifetime', $this->max_lock_hold)
+				);
+				foreach($fields as $f) $lock_event->appendChild($f);	
+				$context['xml']->appendChild($lock_event);
+			}			
+		}
+
+		public function appendEventFilter(&$context) {
+      $context['options'][] = array(
+         'lock-entry', @in_array('lock-entry', $context['selected']),
+         General::sanitize("Lock Entry")
+       );			
+		}
+
+
+		// array of fields, events, messages ($type, passed/failed, $message)
 		public function eventPreSave($context) {
 			$event = $context['event'];
 		 	if (in_array("lock-entry", $event->eParamFILTERS)) {
-				// check if a lock exists AND it's owned by the same user AND it's not expired
-				//	say ok and lock sym_entries, it will be implicitly unlocked when we disconnect if something fails
-				// if not
-				//  say no lock saving for you
+				// see if we're editing anything
+				if (!isset($_POST['id'])) {
+					//change $context['message']
+					return;
+				} else {
+					$entry_id = $_POST['id'];
+				}
+
+				// if there's no user logged in, user_id still has to be set to something
+				$author_id = ($context['parent']->isLoggedIn() ? $context['parent']->Author->get('id') : 1);
+				if (($lock = $this->lockExists($entry_id)) <= 0) {
+					; // if a lock doesn't exist, we can just give them one (ie ignore it)
+				} else {
+					// the lock exists, see if it's owned by the user
+					if ($lock[0] != $author_id) {
+				    $authorManager = new AuthorManager($this->_Parent);
+				    $authors = $authorManager->fetchByID($this->locked[1]);
+						$context['messages'] = array(array('lock-entry', 'failed', 'this lease is currently owned by '.$authors->getFullName()));
+					}
+				}
 			}
 		}
+
+
+
 		// array of section, entry, fields
 		public function eventPostSave($context) {
 			$event = $context['event'];
 		 	if (in_array("lock-entry", $event->eParamFILTERS)) {
-				// unlock sym_entries
-				// get the entry id, user id, try to free the lock (it might already be free from the javascript)
+				if (!isset($_POST['id'])) {
+					; //change $context['message']
+					return;
+				} else {
+					$entry_id = $_POST['id'];
+				}
+
+				// remove a lock
+				$this->removeTheLockByEntry($entry_id);
 				;
       }
 		}
@@ -202,6 +274,7 @@
 																					
 		*/
 		public function lockExists($entry_id) {
+			if (!$entry_id) return -2;
 			$this->lockTables('READ');
 			$lock = $this->_Parent->Database->fetch("
 				SELECT `user_id`, `time_opened`, `id` , `time_updated`
@@ -238,6 +311,7 @@
 		
 		/* this just sees if the lock exists */
 		protected function fetchTheLock($entry_id, $user_id) {
+			if (!$entry_id) return -2;
 			$this->lockTables('READ');
 			$lock = $this->_Parent->Database->fetch("
 				SELECT `entry_id`, `user_id`, `time_opened`, `id`, `time_updated`
@@ -264,6 +338,7 @@
 
 
 		protected function updateTheLock($entry_id, $user_id, $id) {
+			if (!$entry_id) return -2;
 			$this->lockTables('WRITE');
 			$this->_Parent->Database->query("
 				UPDATE
@@ -310,6 +385,7 @@
 			$script->setAttributeArray(array('type' => 'text/javascript'));
 			$script->setValue("
 				jQuery(document).ready(function() {
+					Locking.init();
 					Locking.renewLock('".$entry_id."', '".$author_id."', '".$this->renew_lock."');
 				});								
 			");
