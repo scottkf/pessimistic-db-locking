@@ -22,8 +22,8 @@
 		public function about() {
 			return array(
 				'name'			=> 'Pessimistic Database Locking',
-				'version'		=> '0.2',
-				'release-date'	=> '2009-06-10',
+				'version'		=> '0.5',
+				'release-date'	=> '2009-06-14',
 				'author'		=> array(
 					'name'			=> 'Scott Tesoriere',
 					'website'		=> 'http://tesoriere.com',
