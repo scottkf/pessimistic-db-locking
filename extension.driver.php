@@ -75,12 +75,22 @@
           'delegate'  => 'AppendEventFilter',
           'callback'  => 'appendEventFilter'
         ),
+	      array(
+	        'page' => '/blueprints/events/new/',
+	        'delegate' => 'AppendEventFilterDocumentation',
+	        'callback' => 'appendEventFilterDocumentation'
+	      ),
+	      array(
+	        'page' => '/blueprints/events/edit/',
+	        'delegate' => 'AppendEventFilterDocumentation',
+	        'callback' => 'appendEventFilterDocumentation'
+	      ),
 				array(
           'page'    => '/frontend/',
           'delegate'  => 'EventPreSaveFilter',
           'callback'  => 'eventPreSave'
         ),
-			array(
+				array(
         'page'    => '/frontend/',
         'delegate'  => 'EventPostSaveFilter',
         'callback'  => 'eventPostSave'
@@ -202,6 +212,76 @@
          General::sanitize("Lock Entry")
        );			
 		}
+		
+		public function appendEventFilterDocumentation($context) {
+			if(!in_array('lock-entry', $context['selected'])) return;
+			$context['documentation'][] = new XMLElement('h3', 'Database Entry Leasing');
+
+			$context['documentation'][] = new XMLElement('p', '<b>This event will only work on events being edited. So events with the following:</b>');
+			$code = '<input name="id" type="hidden" value="23" />';
+
+			$context['documentation'][] = contentBlueprintsEvents::processDocumentationCode($code);
+
+			$context['documentation'][] = new XMLElement('p', 'To handle leasing, javascript MUST be used. An example of how to deal with leases follows:');
+
+			$code = <<<CODE
+
+<script type="text/javascript" src="{$root}/extensions/pessimistic_db_locking/assets/locking.js"></script>
+<script type="text/javascript">
+	<xsl:comment>
+		jQuery(document).ready(function() {
+			
+			/* init takes 3 parameters
+					the path to your symphony site (http://example.com)
+					the id of the entry being edited
+					the id of the author */
+			Locking.init('<xsl:value-of select="$root"/>', '<xsl:value-of select="'1130'"/>','<xsl:value-of select="events/login-info/@id"/>' );
+
+			Locking.setupLock(respond);
+			function respond(response) {
+				switch(response) {
+
+				case '"expired-lifetime"':
+					/* offer the user an option to renew the lease incase they're not idle
+					 		it can be renewed by doing the following:
+							Locking.forceRenewCallback(function response(data) {})
+					  	where data is one of the following cases in this example */
+					break
+
+				case '"expired"':
+					/* this will occur after the "expired-lifetime" case, when no lock exists, 
+							so chances are they're still idle */
+					alert('no lock exists for this entry');
+					break
+
+				case '"true"':
+					/* renewLockCallback takes 2 parameters
+								how often to renew the lease
+								the callback to be used (in this example, it is 'respond') */
+					Locking.renewLockCallback('<xsl:value-of select="events/lock-entry/renew_every"/>', respond);
+					// we're just renewing here
+					break
+
+				default:
+					// if someone else owns the lease, do something. in this example, I disable all the form controls
+					Locking.disableForm();
+					alert('currently owned by ' + response);
+				} 
+			}
+		});
+	</xsl:comment>
+</script>
+CODE;
+
+			$context['documentation'][] = contentBlueprintsEvents::processDocumentationCode($code);
+
+			$context['documentation'][] = new XMLElement('p', 'If a user tries to save an entry with this event attached, one of the following might result:');
+			$code = '<filter name="lock-entry" status="passed" />
+<filter name="lock-entry" status="failed">This lease is currently owned by "some authors name".</filter>';
+
+			$context['documentation'][] = contentBlueprintsEvents::processDocumentationCode($code);
+
+		}
 
 
 		// array of fields, events, messages ($type, passed/failed, $message)
@@ -219,13 +299,14 @@
 				// if there's no user logged in, user_id still has to be set to something
 				$author_id = ($context['parent']->isLoggedIn() ? $context['parent']->Author->get('id') : 1);
 				if (($lock = $this->lockExists($entry_id)) <= 0) {
-					; // if a lock doesn't exist, we can just give them one (ie ignore it)
+					// if a lock doesn't exist or is expired, we can just give them one (ie ignore it)
+					$context['messages'] = array(array('lock-entry', 'passed', ''));
 				} else {
 					// the lock exists, see if it's owned by the user
 					if ($lock[0] != $author_id) {
 				    $authorManager = new AuthorManager($this->_Parent);
 				    $authors = $authorManager->fetchByID($this->locked[1]);
-						$context['messages'] = array(array('lock-entry', 'failed', 'this lease is currently owned by '.$authors->getFullName()));
+						$context['messages'] = array(array('lock-entry', 'failed', 'This lease is currently owned by '.$authors->getFullName().'.'));
 					}
 				}
 			}

@@ -15,8 +15,8 @@ var lockingBox;
 	      </div> \
 	    </div>',
 			text: {
-				description: "The lock on this entry just expired!",
-	      callToAction: "&raquo; Renew your lease"
+				description: "The lease on this entry just expired!",
+	      callToAction: "&raquo; Renew your lease by force"
 			}
 	
 		},
@@ -71,10 +71,18 @@ var lockingBox;
 
 		Data: {
 			entry_id: null,
-			author_id: null
+			author_id: null,
+			interval: null
 		},
 	
-		init: function(url) {
+		init: function(url, entry_id, author_id) {
+			
+			if (entry_id != null) {
+				this.Data.entry_id = entry_id;
+			}
+			if (author_id != null) {
+				this.Data.author_id = author_id;
+			}
 			
 			if (url == null) {
 				var h1 = $('h1:first');
@@ -86,7 +94,12 @@ var lockingBox;
 			else {
 				this.URL.root = url;
 			}
+			
+			if (this.URL.root.charAt(this.URL.root.length-1) != '/') {
+				this.URL.root = this.URL.root + '/';
+			}
       this.URL.symphony_root = this.URL.root + 'symphony/';
+			
 
 		},
 
@@ -104,10 +117,10 @@ var lockingBox;
 				data = "entry_id="+entry_id+"&author_id="+author_id;
 	      $.post(url + 'extension/pessimistic_db_locking/ajax_locking/', data, function(response){
 					if (response == '"expired"') {
-						lockingBox.updateMessage("The lock on this entry doesn't exist (did you leave this window open?)");
+						lockingBox.updateMessage("The lease on this entry doesn't exist (did you leave this window open?)");
 					}
 					else if (response == '"expired-lifetime"') {
-						lockingBox.updateMessage('Your lock expired (did you leave this window open?)');
+						lockingBox.updateMessage('Your lease expired (did you leave this window open?)');
 					}
 					else if (response == '"true"'){
 						// we renewed
@@ -121,24 +134,36 @@ var lockingBox;
 			}, time*1000);
 		},
 		
-		
-		setupLock: function(entry_id, author_id) {
+		renewLockCallback: function(time, f) {
 			var url = this.URL.symphony_root;
-			data = "entry_id="+entry_id+"&author_id="+author_id;
-      $.post(url + 'extension/pessimistic_db_locking/ajax_locking/', data, function(response){
-				if (response == '"expired"') {
-					return 'expired';
-				}
-				else if (response == '"expired-lifetime"') {
-					return 'expired-lifetime';
-				}
-				else if (response == '"true"'){
-					return true;
-				}
-				else {
-					return response;
-				}
-			})
+			entry_id = this.Data.entry_id;
+			author_id = this.Data.author_id;
+			if (time == null) {
+				time = 30;
+			}
+			this.Data.interval = setTimeout(function() {
+				data = "entry_id="+entry_id+"&author_id="+author_id;
+	      $.post(url + 'extension/pessimistic_db_locking/ajax_locking/', data, f);				
+			}, time*1000);			
+		}, 
+
+		// parameters: 	the id of the entry you wish to lease
+		//						 	the id of the author who is requesting the lease
+		//							the function which will be called when $.post returns
+		setupLock: function(f) {
+			var url = this.URL.symphony_root;
+			entry_id = this.Data.entry_id;
+			author_id = this.Data.author_id;
+			data = "entry_id="+entry_id+"&author_id="+author_id+"&setup=true";
+      $.post(url + 'extension/pessimistic_db_locking/ajax_locking/', data, f);
+		},
+		
+		forceRenewCallback: function(f) {
+			var url = this.URL.symphony_root;
+			entry_id = this.Data.entry_id;
+			author_id = this.Data.author_id;			
+			data = "entry_id="+entry_id+"&author_id="+author_id+"&force=true";
+			$.post(this.URL.symphony_root + 'extension/pessimistic_db_locking/ajax_locking/', data, f);
 		},
 		
 		forceRenew: function(entry_id, author_id, time) {

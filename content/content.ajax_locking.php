@@ -17,6 +17,11 @@
 			
 			$entry_id = $_REQUEST['entry_id'];
 			$author_id = $_REQUEST['author_id'];
+			if (!$entry_id || !$author_id) {
+				echo json_encode('expired');
+				exit;
+			}
+			$setup = $_REQUEST['setup'];
 			
 			$force = $_REQUEST['force'];
 			if ($force == 'true') {
@@ -36,10 +41,14 @@
 			else if ($lock == -1) {
 				echo json_encode('expired-lifetime');
 			}
+			// doesn't exist
+			else if ($lock == 0 && $setup == true) {
+				$this->_driver->renewTheLock($entry_id, $author_id);
+				echo json_encode('true');
+			}
 			else if ($lock == 0) {
 				echo json_encode('expired');
 			}
-			// doesn't exist
 			else {
 				$this->_driver->renewTheLock($entry_id, $author_id);
 				echo json_encode('true');

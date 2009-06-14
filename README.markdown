@@ -23,6 +23,66 @@ It works as follows:
 2. User obtains a lock on the entry, the lock expires after X amount of time (configurable), and renews (via JS) after X amount of time (configurable)
 3. After successful save, the lock is released OR the lock will be released after X amount of time (like if you went idle on the screen), also configurable
 
+The times are configurable, but only through extension.driver.php currently, newer versions will add preferences.
+
+### On the backend
+
+All you have to do is enable the extension, and it works automatically.
+
+### On the frontend (using an event filter called 'lock-entry')
+
+This will only work on an event which is being edited, i.e., it has an `<input name="id" type="hidden" value="<something">` field. Unfortunately, all the leasing, and renewing must be handled by javascript, so include the following to deal with that on the page you're working on. This is only a basic example:
+
+    <script type="text/javascript" src="{$root}/extensions/pessimistic_db_locking/assets/locking.js"></script>
+    <script type="text/javascript">
+    	<xsl:comment>
+    		jQuery(document).ready(function() {
+
+    			/* init takes 3 parameters
+    					the path to your symphony site (http://example.com)
+    					the id of the entry being edited
+    					the id of the author */
+    			Locking.init('<xsl:value-of select="$root"/>', '<xsl:value-of select="'1130'"/>','<xsl:value-of select="events/login-info/@id"/>' );
+
+    			Locking.setupLock(respond);
+    			function respond(response) {
+    				switch(response) {
+
+    				case '"expired-lifetime"':
+    					/* offer the user an option to renew the lease incase they're not idle
+    					 		it can be renewed by doing the following:
+    							Locking.forceRenewCallback(function response(data) {})
+    					  	where data is one of the following cases in this example */
+    					break
+
+    				case '"expired"':
+    					/* this will occur after the "expired-lifetime" case, when no lock exists, 
+    							so chances are they're still idle */
+    					alert('no lock exists for this entry');
+    					break
+
+    				case '"true"':
+    					/* renewLockCallback takes 2 parameters
+    								how often to renew the lease
+    								the callback to be used (in this example, it is 'respond') */
+    					Locking.renewLockCallback('<xsl:value-of select="events/lock-entry/renew_every"/>', respond);
+    					// we're just renewing here
+    					break
+
+    				default:
+    					// if someone else owns the lease, do something. in this example, I disable all the form controls
+    					Locking.disableForm();
+    					alert('currently owned by ' + response);
+    				} 
+    			}
+    		});
+    	</xsl:comment>
+    </script>
+
+If a user tries to save an entry with this event attached, one of the following might result:
+
+    <filter name="lock-entry" status="passed" />
+    <filter name="lock-entry" status="failed">This lease is currently owned by "some authors name".</filter>
 
 ## Creation
 
@@ -30,10 +90,13 @@ This extension is based on many things, including Nick Dunn's Custom Admin exten
 
 ## TODO
 
+- Add preferences for which sections we should lock, and all the timing (how often it renews, how long it lasts, when it permanently expires)
 - Add an unload event to release the entry
-- Finish the frontend filter that does the same crap as the backend (figure out how to inject the JS)
 
 ## Changelog
+
+### June 14th, 2009
+- Finished the frontend filter, how to use is available above
 
 ### June 12th, 2009
 - Added check for locks on pre entry creation 
