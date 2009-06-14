@@ -5,8 +5,7 @@ This README is incomplete.
 * Version: 0.5
 * Author: Scott Tesoriere <http://github.com/scottkf/>
 * Build Date: 2009-06-14
-* Requirements: Symphony 2.0.2 (with jQuery 1.3)
-								**JAVASCRIPT JAVASCRIPT JAVASCRIPT**
+* Requirements: Symphony 2.0.2 (with jQuery 1.3), jQuery, **JAVASCRIPT**
 
 ## Installation
 
@@ -31,8 +30,9 @@ All you have to do is enable the extension, and it works automatically.
 
 ### On the frontend (using an event filter called 'lock-entry')
 
-This will only work on an event which is being edited, i.e., it has an `<input name="id" type="hidden" value="<something">` field. Unfortunately, all the leasing, and renewing must be handled by javascript, so include the following to deal with that on the page you're working on. This is only a basic example:
+This will only work on an event which is being edited, i.e., it has an `<input name="id" type="hidden" value="<something">` field. Unfortunately, all the leasing, and renewing must be handled by javascript, so include the following to deal with that on the page you're working on. This is only a basic example using jQuery:
 
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
     <script type="text/javascript" src="{$root}/extensions/pessimistic_db_locking/assets/locking.js"></script>
     <script type="text/javascript">
     	<xsl:comment>
