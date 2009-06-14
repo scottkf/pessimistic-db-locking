@@ -2,9 +2,9 @@ This README is incomplete.
 
 # Pessimistic Database Locking
 
-* Version: 0.1
+* Version: 0.5
 * Author: Scott Tesoriere <http://github.com/scottkf/>
-* Build Date: 2009-06-12
+* Build Date: 2009-06-14
 * Requirements: Symphony 2.0.2 (with jQuery 1.3)
 								**JAVASCRIPT JAVASCRIPT JAVASCRIPT**
 
